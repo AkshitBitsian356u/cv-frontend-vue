@@ -174,16 +174,17 @@ export default function startListeners() {
         updateSimulationSet(true);
         updatePositionSet(true);
 
-        // zoom in (+)
+        // Zoom is now on Cmd/Ctrl +/- (primary zoom method)
         if (e.key == 'Meta' || e.key == 'Control') {
             simulationArea.controlDown = true;
         }
-        if (simulationArea.controlDown && (e.keyCode == 187 || e.KeyCode == 171)) {
+        // zoom in: Cmd/Ctrl + '+' or '='
+        if (simulationArea.controlDown && (e.keyCode == 187 || e.KeyCode == 171 || e.key == '+' || e.key == '=')) {
             e.preventDefault();
             ZoomIn();
         }
-        // zoom out (-)
-        if (simulationArea.controlDown && (e.keyCode == 189 || e.Keycode == 173)) {
+        // zoom out: Cmd/Ctrl + '-'
+        if (simulationArea.controlDown && (e.keyCode == 189 || e.Keycode == 173 || e.key == '-' || e.key == '_')) {
             e.preventDefault();
             ZoomOut();
         }

@@ -70,25 +70,89 @@
                 <i style="color: #ddd" class="fas fa-expand-arrows-alt"></i>
             </button>
         </div>
-        <div class="zoom-slider">
-            <button class="zoom-slider-decrement" @click="decrement">-</button>
-            <input
-                id="customRange1"
-                type="range"
-                class="custom-range"
-                min="0"
-                max="45"
-                step="1"
+        <!-- Zoom slider: 1-100% mapped to internal zoom scale via setZoomFromSlider API -->
+        <div class="zoom-controls">
+            <button class="zoom-button-decrement" @click="decrementZoom" title="Zoom Out">−</button>
+            <input 
+              type="range" 
+              v-model.number="displayZoomPercent"
+              @input="onZoomSliderInput"
+              min="1" 
+              max="100" 
+              step="1"
+              class="zoom-slider"
+              title="Zoom Level"
             />
-            <span id="slider_value"></span>
-            <button class="zoom-slider-increment" @click="increment">+</button>
+            <button class="zoom-button-increment" @click="incrementZoom" title="Zoom In">+</button>
+            <span class="zoom-label">{{ displayZoomPercent }}%</span>
         </div>
     </div>
     <div id="exitView"></div>
 </template>
 
 <script lang="ts" setup>
-import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view, decrement, increment } from './QuickButton';
+import { ref, onMounted } from 'vue'
+import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view } from './QuickButton'
+// @ts-ignore - simulator functions are not typed
+import { setZoomFromSlider, getZoomSliderValue } from '../../../simulator/src/listeners'
+
+const DISPLAY_ZOOM_MIN = 1
+const DISPLAY_ZOOM_MAX = 100
+const DISPLAY_ZOOM_DEFAULT = 50
+const DISPLAY_ZOOM_STEP = 5
+
+const INTERNAL_ZOOM_MIN = 0
+const INTERNAL_ZOOM_MAX = 200
+
+const displayZoomPercent = ref(100)
+
+const clampZoomPercent = (value: number): number => {
+    return Math.max(DISPLAY_ZOOM_MIN, Math.min(DISPLAY_ZOOM_MAX, value))
+}
+
+const convertInternalToDisplayZoom = (internalValue: number): number => {
+    return Math.round((internalValue / INTERNAL_ZOOM_MAX) * 100)
+}
+
+const convertDisplayToInternalZoom = (displayPercent: number): number => {
+    return (displayPercent / 100) * INTERNAL_ZOOM_MAX
+}
+
+const initializeZoomSlider = () => {
+    try {
+        const currentInternalZoom = getZoomSliderValue(INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
+        const currentDisplayZoom = convertInternalToDisplayZoom(currentInternalZoom)
+        displayZoomPercent.value = clampZoomPercent(currentDisplayZoom)
+    } catch (error) {
+        console.warn('Could not initialize zoom slider:', error)
+        displayZoomPercent.value = DISPLAY_ZOOM_DEFAULT
+    }
+}
+
+const updateSimulatorZoom = () => {
+    try {
+        const internalZoomValue = convertDisplayToInternalZoom(displayZoomPercent.value)
+        setZoomFromSlider(internalZoomValue, INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
+    } catch (error) {
+        console.warn('Could not apply zoom:', error)
+    }
+}
+
+const incrementZoom = () => {
+    displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value + DISPLAY_ZOOM_STEP)
+    updateSimulatorZoom()
+}
+
+const decrementZoom = () => {
+    displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value - DISPLAY_ZOOM_STEP)
+    updateSimulatorZoom()
+}
+
+const onZoomSliderInput = () => {
+    updateSimulatorZoom()
+}
+
+onMounted(initializeZoomSlider)
 
 function dragover(): void {
     const quickBtn: HTMLElement | null = document.querySelector('.quick-btn')
@@ -203,58 +267,82 @@ function dragover(): void {
     color: white
 }
 
-.zoom-slider {
+/* Zoom controls with slider (1-100% display) */
+.zoom-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.zoom-button-decrement,
+.zoom-button-increment {
+    background: transparent;
     color: white;
+    border: none;
+    cursor: pointer;
     font-size: 20px;
-    padding-top: 0.2rem;
+    font-weight: bold;
+    padding: 0 6px;
+    line-height: 1;
+    min-width: 24px;
 }
 
-.zoom-slider-decrement {
-    position: relative;
-    padding-right: 4px;
-    bottom: 0.3rem;
-}
-.zoom-slider-increment {
-    position: relative;
-    padding-left: 4px;
-    bottom: 0.3rem;
+.zoom-button-decrement:hover,
+.zoom-button-increment:hover {
+    opacity: 0.7;
 }
 
-.custom-range {
-    width: 80px !important;
-}
-.custom-range::-moz-range-track {
-    height: 1px;
-}
-
-.custom-range::-moz-range-thumb {
-    width: 10px;
-    height: 10px;
-    background-color: white;
-    border: 0;
-    border-radius: 50%;
+.zoom-slider {
+    width: 100px;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
     cursor: pointer;
 }
-.custom-range:focus::-moz-range-thumb {
-    box-shadow: 0 0 0 1px #fff, 0 0 0 0.2rem rgba(75, 86, 99, 0.25);
-}
 
-input[type='range'] {
+.zoom-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-}
-
-input[type='range']::-webkit-slider-runnable-track {
-    height: 1px;
-}
-
-input[type='range']::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 10px;
-    height: 10px;
-    background-color: white;
-    border: 0;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: white;
     border-radius: 50%;
     cursor: pointer;
+    transition: background 0.15s ease-in-out;
+}
+
+.zoom-slider::-webkit-slider-thumb:hover {
+    background: #ddd;
+}
+
+.zoom-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease-in-out;
+}
+
+.zoom-slider::-moz-range-thumb:hover {
+    background: #ddd;
+}
+
+.zoom-label {
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 40px;
+    text-align: right;
+}
+
+.zoom-button-decrement:hover,
+.zoom-button-increment:hover {
+    opacity: 0.7;
 }
 
 @media (max-width: 991px) {
