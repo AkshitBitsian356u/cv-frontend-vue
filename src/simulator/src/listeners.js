@@ -665,6 +665,7 @@ export default function startListeners() {
         
         // Show minimap temporarily (if enabled)
         if (!embed && !lightMode) {
+            findDimensions(globalScope)   
             miniMapArea.setup()
             const miniMapElement = document.querySelector('#miniMap')
             if (miniMapElement) {
@@ -818,11 +819,14 @@ resizeTabs()
  * Apply zoom change in the specified direction
  * @param {number} direction - Direction and magnitude of zoom change (1 = zoom in, -1 = zoom out)
  */
+const MIN_ZOOM_SCALE = 0.5
+const MAX_ZOOM_SCALE = 4 * DPR
+
 function applyZoomChange(direction) {
     const zoomDelta = direction * 0.1 * DPR
     const targetScale = Math.max(
-        0.5 * DPR,
-        Math.min(4 * DPR, globalScope.scale + zoomDelta)
+        MIN_ZOOM_SCALE,
+        Math.min(MAX_ZOOM_SCALE, globalScope.scale + zoomDelta)
     )
 
     if (targetScale !== globalScope.scale) {
@@ -831,6 +835,7 @@ function applyZoomChange(direction) {
         scheduleUpdate()
     }
 }
+
 
 /**
  * Zoom in - increases the canvas scale
