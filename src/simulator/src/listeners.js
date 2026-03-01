@@ -635,15 +635,21 @@ export default function startListeners() {
     
     /**
      * Apply panning to the canvas viewport
-     * @param {number} deltaX - Horizontal pan delta
-     * @param {number} deltaY - Vertical pan delta
+     * @param {number} deltaX - Horizontal pan delta (from scroll event)
+     * @param {number} deltaY - Vertical pan delta (from scroll event)
+     *
+     * The canvas origin (ox, oy) is the pixel offset of the canvas content.
+     * To make content follow the finger/wheel naturally (natural scroll):
+     *   - Swipe right  → deltaX > 0 → content moves right → ox decreases
+     *   - Swipe left   → deltaX < 0 → content moves left  → ox increases
+     *   - Swipe down   → deltaY > 0 → content moves down  → oy decreases
+     *   - Swipe up     → deltaY < 0 → content moves up    → oy increases
+     * So we subtract the delta from the origin.
      */
     function applyCanvasPan(deltaX, deltaY) {
-        // Pan the canvas by adjusting origin
-        // Positive scroll moves content down/right
-        globalScope.ox += deltaX
-        globalScope.oy += deltaY
-        
+        globalScope.ox -= deltaX
+        globalScope.oy -= deltaY
+
         // Round to avoid subpixel rendering issues
         globalScope.ox = Math.round(globalScope.ox)
         globalScope.oy = Math.round(globalScope.oy)
