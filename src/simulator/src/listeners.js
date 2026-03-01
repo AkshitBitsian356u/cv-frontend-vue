@@ -420,20 +420,18 @@ export default function startListeners() {
                 }
 
                 // Keyboard zoom shortcuts
-                // Zoom in: Cmd/Ctrl + '+' or Cmd/Ctrl + '='
-                // (On US keyboards, '+' is Shift+'=', so we accept both to handle with/without Shift)
-                // Also accepts keyCode 107 for numpad '+'
+                // Zoom in: Cmd/Ctrl + '+' or numpad '+'
+                // (On US keyboards, '+' is Shift+'='; we only check for '+' to avoid
+                //  triggering on plain '=' which would require Cmd/Ctrl+Shift+= instead)
                 if (
                     (simulationArea.controlDown &&
-                        (e.keyCode == 187 || e.keyCode == 171 || e.key == '+' || e.key == '=')) ||
+                        (e.keyCode == 187 || e.keyCode == 171 || e.key == '+')) ||
                     e.keyCode == 107
                 ) {
                     e.preventDefault()
                     ZoomIn()
                 }
-                // Zoom out: Cmd/Ctrl + '-'
-                // (Only '-', not '_', since '_' requires Shift and could cause confusion)
-                // Also accepts keyCode 109 for numpad '-'
+                // Zoom out: Cmd/Ctrl + '-' or numpad '-'
                 if (
                     (simulationArea.controlDown &&
                         (e.keyCode == 189 || e.keyCode == 173 || e.key == '-')) ||
@@ -631,9 +629,9 @@ export default function startListeners() {
      */
     function applyCanvasPan(deltaX, deltaY) {
         // Pan the canvas by adjusting origin
-        // Invert delta: positive scroll should move content down/right
-        globalScope.ox -= deltaX
-        globalScope.oy -= deltaY
+        // Positive scroll moves content down/right
+        globalScope.ox += deltaX
+        globalScope.oy += deltaY
         
         // Round to avoid subpixel rendering issues
         globalScope.ox = Math.round(globalScope.ox)
@@ -661,12 +659,10 @@ export default function startListeners() {
     }
 
     // Register wheel/trackpad event listeners for canvas panning
-    document
-        .getElementById('simulationArea')
-        .addEventListener('mousewheel', handleCanvasPan)
-    document
-        .getElementById('simulationArea')
-        .addEventListener('DOMMouseScroll', handleCanvasPan)
+    const simulationAreaElement = document.getElementById('simulationArea')
+    simulationAreaElement.addEventListener('wheel', handleCanvasPan, { passive: false })
+    simulationAreaElement.addEventListener('mousewheel', handleCanvasPan, { passive: false })
+    simulationAreaElement.addEventListener('DOMMouseScroll', handleCanvasPan, { passive: false })
 
     document.addEventListener('cut', (e) => {
         if (verilogModeGet()) return
@@ -807,11 +803,13 @@ resizeTabs()
  */
 function applyZoomChange(direction) {
     const zoomDelta = direction * 0.1 * DPR
-    const newScale = globalScope.scale + zoomDelta
-    
-    // Ensure scale stays within valid bounds
-    if (newScale >= 0.5 * DPR && newScale <= 4 * DPR) {
-        changeScale(zoomDelta)
+    const targetScale = Math.max(
+        0.5 * DPR,
+        Math.min(4 * DPR, globalScope.scale + zoomDelta)
+    )
+
+    if (targetScale !== globalScope.scale) {
+        changeScale(targetScale - globalScope.scale)
         gridUpdateSet(true)
         scheduleUpdate()
     }
@@ -853,6 +851,8 @@ export function setZoomFromSlider(
     minZoom = 0.5 * DPR,
     maxZoom = 4 * DPR
 ) {
+    if (maxSliderValue === minSliderValue || maxZoom === minZoom) return
+
     // Normalize slider value to 0-1 range
     const normalizedValue = (sliderValue - minSliderValue) / (maxSliderValue - minSliderValue)
     
@@ -893,6 +893,10 @@ export function getZoomSliderValue(
     minZoom = 0.5 * DPR,
     maxZoom = 4 * DPR
 ) {
+    if (maxSliderValue === minSliderValue || maxZoom === minZoom) {
+        return minSliderValue
+    }
+
     const currentScale = globalScope.scale
     
     // Clamp current scale to valid range
