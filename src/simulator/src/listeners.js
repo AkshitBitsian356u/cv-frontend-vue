@@ -7,6 +7,7 @@
 /* eslint-disable prefer-template */
 /* eslint-disable no-param-reassign */
 // Most Listeners are stored here
+const DPR = window.devicePixelRatio || 1
 import {
     layoutModeGet,
     tempBuffer,
