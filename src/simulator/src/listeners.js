@@ -605,8 +605,19 @@ export default function startListeners() {
         
         if (event.deltaX !== undefined && event.deltaY !== undefined) {
             // Modern browsers: event.deltaX, event.deltaY
-            deltaX = event.deltaX
-            deltaY = event.deltaY
+            // Normalize by deltaMode: 0 = pixel, 1 = line, 2 = page
+            let modeScale = 1
+
+            if (event.deltaMode === 1) {
+                // Lines → approximate pixels
+                modeScale = 16
+            } else if (event.deltaMode === 2) {
+                // Pages → approximate one viewport height
+                modeScale = window.innerHeight
+            }
+        
+            deltaX = event.deltaX * modeScale
+            deltaY = event.deltaY * modeScale
         } else if (event.wheelDeltaX !== undefined && event.wheelDeltaY !== undefined) {
             // Webkit browsers: wheelDeltaX, wheelDeltaY (inverted sign)
             deltaX = -event.wheelDeltaX
@@ -851,28 +862,41 @@ export function setZoomFromSlider(
     minZoom = 0.5 * DPR,
     maxZoom = 4 * DPR
 ) {
-    if (maxSliderValue === minSliderValue || maxZoom === minZoom) return
+    // Guard against invalid inputs and degenerate ranges
+    const inputs = [sliderValue, minSliderValue, maxSliderValue, minZoom, maxZoom]
+    if (
+        !inputs.every(Number.isFinite) ||
+        maxSliderValue === minSliderValue ||
+        maxZoom === minZoom
+    ) {
+        return
+    }
 
     // Normalize slider value to 0-1 range
-    const normalizedValue = (sliderValue - minSliderValue) / (maxSliderValue - minSliderValue)
-    
+    const normalizedValue =
+        (sliderValue - minSliderValue) / (maxSliderValue - minSliderValue)
+
     // Map to zoom scale range
     const targetScale = minZoom + normalizedValue * (maxZoom - minZoom)
-    
+
     // Clamp to valid zoom range
     const clampedScale = Math.max(minZoom, Math.min(maxZoom, targetScale))
-    
+
     // Calculate delta from current scale
     const scaleDelta = clampedScale - globalScope.scale
-    
+
+    // Avoid applying invalid or zero delta
+    if (!Number.isFinite(scaleDelta) || scaleDelta === 0) return
+
     // Apply zoom centered on viewport (method = 3)
     changeScale(scaleDelta, 'zoomButton', 'zoomButton', 3)
-    
+
     // Update display
     gridUpdateSet(true)
     updateCanvasSet(true)
     scheduleUpdate()
 }
+
 
 /**
  * Get the current zoom level as a slider value
@@ -893,20 +917,32 @@ export function getZoomSliderValue(
     minZoom = 0.5 * DPR,
     maxZoom = 4 * DPR
 ) {
-    if (maxSliderValue === minSliderValue || maxZoom === minZoom) {
-        return minSliderValue
-    }
+    const inputs = [minSliderValue, maxSliderValue, minZoom, maxZoom, globalScope.scale]  
+    if (                                                                                  
+        !inputs.every(Number.isFinite) ||                                                 
+        maxSliderValue === minSliderValue ||                                              
+        maxZoom === minZoom                                                               
+    ) {                                                                                   
+        return minSliderValue                                                             
+    }                                                                                     
 
     const currentScale = globalScope.scale
-    
+
     // Clamp current scale to valid range
     const clampedScale = Math.max(minZoom, Math.min(maxZoom, currentScale))
-    
+
     // Normalize scale to 0-1 range
     const normalizedScale = (clampedScale - minZoom) / (maxZoom - minZoom)
-    
+
     // Map to slider value range
-    const sliderValue = minSliderValue + normalizedScale * (maxSliderValue - minSliderValue)
-    
+    const sliderValue =
+        minSliderValue + normalizedScale * (maxSliderValue - minSliderValue)
+
+    if (!Number.isFinite(sliderValue)) {        
+        return minSliderValue                   
+    }                                           
+
     return sliderValue
 }
+
+
