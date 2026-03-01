@@ -80,22 +80,11 @@
       <Hamburger2 v-if="simulatorMobileStore.showMobileView" :navbar-data="navbarData" />
     </nav>
     </div>
-    <!-- Zoom slider: 1-100% mapped to internal zoom scale via setZoomFromSlider API -->
+    <!-- Zoom controls: +/- buttons -->
     <div class="slider-container">
       <div class="zoom-controls">
-          <button class="zoom-button-decrement" @click="decrementZoom" title="Zoom Out">−</button>
-          <input 
-            type="range" 
-            v-model.number="displayZoomPercent"
-            @input="onZoomSliderInput"
-            min="1" 
-            max="100" 
-            step="1"
-            class="zoom-slider"
-            title="Zoom Level"
-          />
-          <button class="zoom-button-increment" @click="incrementZoom" title="Zoom In">+</button>
-          <span class="zoom-label">{{ displayZoomPercent }}%</span>
+          <button class="zoom-button-decrement" @click="decrement" title="Zoom Out">−</button>
+          <button class="zoom-button-increment" @click="increment" title="Zoom In">+</button>
       </div>
   </div>
   </div>
@@ -103,100 +92,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
 import Hamburger2 from '../Hamburger/Hamburger2.vue'
 import navbarData from '../../../assets/constants/Navbar/NAVBAR_DATA.json'
 import { useSimulatorMobileStore } from '../../../store/simulatorMobileStore'
-import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view } from './QuickButton'
-// @ts-ignore - simulator functions are not typed
-import { setZoomFromSlider, getZoomSliderValue } from '../../../simulator/src/listeners'
+import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view, increment, decrement } from './QuickButton'
 
 const simulatorMobileStore = useSimulatorMobileStore()
-
-// Display zoom constants (user-facing percentage values)
-const DISPLAY_ZOOM_MIN = 1
-const DISPLAY_ZOOM_MAX = 100
-const DISPLAY_ZOOM_DEFAULT = 50
-const DISPLAY_ZOOM_STEP = 5
-
-// Internal zoom constants (simulator scale range)
-const INTERNAL_ZOOM_MIN = 0
-const INTERNAL_ZOOM_MAX = 200
-
-// Current zoom level displayed to user (1-100%)
-const displayZoomPercent = ref(DISPLAY_ZOOM_DEFAULT)
-
-/**
- * Clamp zoom percentage to valid display range
- */
-const clampZoomPercent = (value: number): number => {
-  return Math.max(DISPLAY_ZOOM_MIN, Math.min(DISPLAY_ZOOM_MAX, value))
-}
-
-/**
- * Convert internal zoom value (0-200) to display percentage (1-100%)
- */
-const convertInternalToDisplayZoom = (internalValue: number): number => {
-  return Math.round((internalValue / INTERNAL_ZOOM_MAX) * 100)
-}
-
-/**
- * Convert display percentage (1-100%) to internal zoom value (0-200)
- */
-const convertDisplayToInternalZoom = (displayPercent: number): number => {
-  return (displayPercent / 100) * INTERNAL_ZOOM_MAX
-}
-
-/**
- * Initialize zoom slider with current simulator zoom level
- */
-const initializeZoomSlider = () => {
-  try {
-    const currentInternalZoom = getZoomSliderValue(INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
-    const currentDisplayZoom = convertInternalToDisplayZoom(currentInternalZoom)
-    displayZoomPercent.value = clampZoomPercent(currentDisplayZoom)
-  } catch (error) {
-    console.warn('Could not initialize zoom slider:', error)
-    displayZoomPercent.value = DISPLAY_ZOOM_DEFAULT
-  }
-}
-
-/**
- * Update simulator zoom based on current display percentage
- */
-const updateSimulatorZoom = () => {
-  try {
-    const internalZoomValue = convertDisplayToInternalZoom(displayZoomPercent.value)
-    setZoomFromSlider(internalZoomValue, INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
-  } catch (error) {
-    console.warn('Could not apply zoom:', error)
-  }
-}
-
-/**
- * Increase zoom level by one step
- */
-const incrementZoom = () => {
-  displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value + DISPLAY_ZOOM_STEP)
-  updateSimulatorZoom()
-}
-
-/**
- * Decrease zoom level by one step
- */
-const decrementZoom = () => {
-  displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value - DISPLAY_ZOOM_STEP)
-  updateSimulatorZoom()
-}
-
-/**
- * Handle slider input event - updates zoom in real-time as user drags
- */
-const onZoomSliderInput = () => {
-  updateSimulatorZoom()
-}
-
-onMounted(initializeZoomSlider)
 </script>
 
 <style scoped>

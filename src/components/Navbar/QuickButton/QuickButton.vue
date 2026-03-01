@@ -70,89 +70,17 @@
                 <i style="color: #ddd" class="fas fa-expand-arrows-alt"></i>
             </button>
         </div>
-        <!-- Zoom slider: 1-100% mapped to internal zoom scale via setZoomFromSlider API -->
+        <!-- Zoom controls: +/- buttons -->
         <div class="zoom-controls">
-            <button class="zoom-button-decrement" @click="decrementZoom" title="Zoom Out">−</button>
-            <input 
-              type="range" 
-              v-model.number="displayZoomPercent"
-              @input="onZoomSliderInput"
-              min="1" 
-              max="100" 
-              step="1"
-              class="zoom-slider"
-              title="Zoom Level"
-            />
-            <button class="zoom-button-increment" @click="incrementZoom" title="Zoom In">+</button>
-            <span class="zoom-label">{{ displayZoomPercent }}%</span>
+            <button class="zoom-button-decrement" @click="decrement" title="Zoom Out">−</button>
+            <button class="zoom-button-increment" @click="increment" title="Zoom In">+</button>
         </div>
     </div>
     <div id="exitView"></div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
-import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view } from './QuickButton'
-// @ts-ignore - simulator functions are not typed
-import { setZoomFromSlider, getZoomSliderValue } from '../../../simulator/src/listeners'
-
-const DISPLAY_ZOOM_MIN = 1
-const DISPLAY_ZOOM_MAX = 100
-const DISPLAY_ZOOM_DEFAULT = 50
-const DISPLAY_ZOOM_STEP = 5
-
-const INTERNAL_ZOOM_MIN = 0
-const INTERNAL_ZOOM_MAX = 200
-
-const displayZoomPercent = ref(100)
-
-const clampZoomPercent = (value: number): number => {
-    return Math.max(DISPLAY_ZOOM_MIN, Math.min(DISPLAY_ZOOM_MAX, value))
-}
-
-const convertInternalToDisplayZoom = (internalValue: number): number => {
-    return Math.round((internalValue / INTERNAL_ZOOM_MAX) * 100)
-}
-
-const convertDisplayToInternalZoom = (displayPercent: number): number => {
-    return (displayPercent / 100) * INTERNAL_ZOOM_MAX
-}
-
-const initializeZoomSlider = () => {
-    try {
-        const currentInternalZoom = getZoomSliderValue(INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
-        const currentDisplayZoom = convertInternalToDisplayZoom(currentInternalZoom)
-        displayZoomPercent.value = clampZoomPercent(currentDisplayZoom)
-    } catch (error) {
-        console.warn('Could not initialize zoom slider:', error)
-        displayZoomPercent.value = DISPLAY_ZOOM_DEFAULT
-    }
-}
-
-const updateSimulatorZoom = () => {
-    try {
-        const internalZoomValue = convertDisplayToInternalZoom(displayZoomPercent.value)
-        setZoomFromSlider(internalZoomValue, INTERNAL_ZOOM_MIN, INTERNAL_ZOOM_MAX)
-    } catch (error) {
-        console.warn('Could not apply zoom:', error)
-    }
-}
-
-const incrementZoom = () => {
-    displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value + DISPLAY_ZOOM_STEP)
-    updateSimulatorZoom()
-}
-
-const decrementZoom = () => {
-    displayZoomPercent.value = clampZoomPercent(displayZoomPercent.value - DISPLAY_ZOOM_STEP)
-    updateSimulatorZoom()
-}
-
-const onZoomSliderInput = () => {
-    updateSimulatorZoom()
-}
-
-onMounted(initializeZoomSlider)
+import { saveOnline, saveOffline, deleteSelectedItem, createSaveAsImgPrompt, zoomToFit, undoit, redoit, view, increment, decrement } from './QuickButton'
 
 function dragover(): void {
     const quickBtn: HTMLElement | null = document.querySelector('.quick-btn')
@@ -338,11 +266,6 @@ function dragover(): void {
     font-weight: 500;
     min-width: 40px;
     text-align: right;
-}
-
-.zoom-button-decrement:hover,
-.zoom-button-increment:hover {
-    opacity: 0.7;
 }
 
 @media (max-width: 991px) {

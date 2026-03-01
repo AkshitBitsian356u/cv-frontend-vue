@@ -419,8 +419,10 @@ export default function startListeners() {
                     simulationArea.controlDown = true
                 }
 
-                // Keyboard zoom shortcuts (in addition to existing scroll/trackpad zoom)
-                // zoom in: Cmd/Ctrl + '+' or '=' (calls existing ZoomIn function)
+                // Keyboard zoom shortcuts
+                // Zoom in: Cmd/Ctrl + '+' or Cmd/Ctrl + '='
+                // (On US keyboards, '+' is Shift+'=', so we accept both to handle with/without Shift)
+                // Also accepts keyCode 107 for numpad '+'
                 if (
                     (simulationArea.controlDown &&
                         (e.keyCode == 187 || e.keyCode == 171 || e.key == '+' || e.key == '=')) ||
@@ -429,10 +431,12 @@ export default function startListeners() {
                     e.preventDefault()
                     ZoomIn()
                 }
-                // zoom out: Cmd/Ctrl + '-' or '_' (calls existing ZoomOut function)
+                // Zoom out: Cmd/Ctrl + '-'
+                // (Only '-', not '_', since '_' requires Shift and could cause confusion)
+                // Also accepts keyCode 109 for numpad '-'
                 if (
                     (simulationArea.controlDown &&
-                        (e.keyCode == 189 || e.keyCode == 173 || e.key == '-' || e.key == '_')) ||
+                        (e.keyCode == 189 || e.keyCode == 173 || e.key == '-')) ||
                     e.keyCode == 109
                 ) {
                     e.preventDefault()
@@ -778,8 +782,8 @@ export default function startListeners() {
         })
     })
 
-    // zoomSliderListeners() disabled - slider removed to prevent accidental zoom from swipes/scroll
-    // Zoom is now controlled by +/- buttons only (which call ZoomIn/ZoomOut directly)
+    // zoomSliderListeners() (jQuery-based) disabled here - zoom slider handling has moved to Vue
+    // Vue components (QuickButton.vue / QuickButtonMobile.vue) now manage the zoom slider and +/- buttons
     if (!embed) {
         setupTimingListeners()
     }

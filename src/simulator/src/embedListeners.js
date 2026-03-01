@@ -178,13 +178,15 @@ export default function startListeners() {
         if (e.key == 'Meta' || e.key == 'Control') {
             simulationArea.controlDown = true;
         }
-        // zoom in: Cmd/Ctrl + '+' or '='
-        if (simulationArea.controlDown && (e.keyCode == 187 || e.KeyCode == 171 || e.key == '+' || e.key == '=')) {
+        // Zoom in: Cmd/Ctrl + '+' or Cmd/Ctrl + '='
+        // (On US keyboards, '+' is Shift+'=', so we accept both to handle with/without Shift)
+        if (simulationArea.controlDown && (e.keyCode == 187 || e.keyCode == 171 || e.key == '+' || e.key == '=')) {
             e.preventDefault();
             ZoomIn();
         }
-        // zoom out: Cmd/Ctrl + '-'
-        if (simulationArea.controlDown && (e.keyCode == 189 || e.Keycode == 173 || e.key == '-' || e.key == '_')) {
+        // Zoom out: Cmd/Ctrl + '-'
+        // (Only '-', not '_', since '_' requires Shift and could cause confusion)
+        if (simulationArea.controlDown && (e.keyCode == 189 || e.keyCode == 173 || e.key == '-')) {
             e.preventDefault();
             ZoomOut();
         }
